@@ -31,29 +31,57 @@ HELP_TEXT = (
 )
 
 
-def _parse_news_args(args: list[str]) -> tuple[str, int]:
-    """Return (topic, limit) from /news command args."""
+_WINDOWS = {"hour", "day", "week", "month", "year", "all"}
+
+
+def _parse_news_args(args: list[str]) -> tuple[str, int, str]:
+    """Return (topic, limit, window) from /news command args.
+
+    Accepted forms:
+        /news                          -> all, 5, day
+        /news ai                       -> ai, 5, day
+        /news ai 10                    -> ai, 10, day
+        /news ai week                  -> ai, 5, week
+        /news week 10                  -> all, 10, week
+        /news ai week 10               -> ai, 10, week
+    """
     topic = "all"
     limit = 5
-    if args:
-        first = args[0].lower()
-        if first in {"ai", "llm", "all"}:
-            topic = first
+    window = "day"
+    positional = []
+    for a in args:
+        al = a.lower()
+        if al in {"ai", "llm", "all"} and topic == "all":
+            topic = al
+        elif al in _WINDOWS and window == "day":
+            window = al
         else:
-            try:
-                limit = max(1, min(int(first), 20))
-            except ValueError:
-                pass
-    if len(args) >= 2:
+            positional.append(a)
+    for p in positional:
         try:
-            limit = max(1, min(int(args[1]), 20))
+            limit = max(1, min(int(p), 20))
         except ValueError:
             pass
-    return topic, limit
+    return topic, limit, window
 
 
-async def _send_digest(update: Update, topic: str, limit: int) -> None:
+async def _send_digest(update: Update, topic: str, limit: int, window: str) -> None:
     base = get_base_url()
+    # If a non-default window was requested, trigger a one-off refresh with
+    # that time window before reading the feed.
+    if window != "day":
+        try:
+            counts = await refresh(base, timeout=180.0, time=window)
+            summary = ", ".join(f"{k}: {v}" for k, v in counts.items())
+            await update.message.reply_text(
+                f"_Refreshed (window={window})._ {summary}", parse_mode="Markdown"
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("refresh with time=%s failed: %s", window, exc)
+            await update.message.reply_text(
+                f"_Refresh failed:_ `{exc}`", parse_mode="Markdown"
+            )
+            return
     try:
         items = await fetch_topic(base, topic=topic)
     except Exception as exc:  # noqa: BLE001
@@ -78,8 +106,8 @@ async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def cmd_news(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
-    topic, limit = _parse_news_args(ctx.args or [])
-    await _send_digest(update, topic, limit)
+    topic, limit, window = _parse_news_args(ctx.args or [])
+    await _send_digest(update, topic, limit, window)
 
 
 async def cmd_refresh(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
@@ -111,7 +139,8 @@ def build_application() -> Application:
 @click.option("--smoke", is_flag=True, help="Don't connect to Telegram; just print what /news would send.")
 @click.option("--topic", default="all", show_default=True)
 @click.option("--limit", default=5, show_default=True)
-def main(smoke: bool, topic: str, limit: int) -> None:
+@click.option("--window", default="day", show_default=True, help="Reddit time window.")
+def main(smoke: bool, topic: str, limit: int, window: str) -> None:
     """Run the ourdigest Telegram bot (or smoke-test it)."""
     logging.basicConfig(
         level=os.environ.get("OURDIGEST_BOT_LOG_LEVEL", "INFO"),

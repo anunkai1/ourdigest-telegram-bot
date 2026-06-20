@@ -68,11 +68,13 @@ def parse_feed(xml_bytes: bytes) -> list[Item]:
     return items
 
 
-async def refresh(base_url: str, *, timeout: float = 120.0) -> dict[str, int]:
-    """Trigger ourdigest /refresh. Returns counts per topic."""
+async def refresh(base_url: str, *, timeout: float = 120.0, time: str = "default") -> dict[str, int]:
+    """Trigger ourdigest /refresh. Pass time="day"|"week" to override the
+    reddit time window for this single refresh."""
     url = base_url.rstrip("/") + "/refresh"
+    params = {} if time == "default" else {"time": time}
     async with httpx.AsyncClient(timeout=timeout) as client:
-        r = await client.post(url)
+        r = await client.post(url, params=params)
         r.raise_for_status()
         return r.json().get("stories_per_topic", {})
 
