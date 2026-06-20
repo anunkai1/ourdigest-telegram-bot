@@ -21,13 +21,7 @@ log = logging.getLogger(__name__)
 
 
 HELP_TEXT = (
-    "*ourdigest bot*\n\n"
-    "Commands:\n"
-    "  /news \\u2014 top 5 from all topics\n"
-    "  /news <topic> \\u2014 top 5 from one topic (ai, llm, all)\n"
-    "  /news <topic> <N> \\u2014 top N (max 20)\n"
-    "  /refresh \\u2014 re-pull sources, then /news\n"
-    "  /help \\u2014 this message\n"
+    "*ourdigest bot*\n\nSources: Reddit (r/singularity, r/OpenAI, r/artificial, r/MachineLearning, r/LocalLLaMA) filtered to stories with 100+ upvotes.\n\n*Commands:*\n/news -- top 5 stories, all topics, last 24h\n/news <topic> -- top 5 from one topic (ai, llm, all)\n/news <topic> <N> -- top N stories, max 20\n/news <topic> <window> -- window: hour, day, week, month, year, all\n/news ai week 10 -- example: ai topic, last week, top 10\n/refresh -- re-pull sources (day window), then /news\n/help -- this message\n\nTopics: ai (broad AI), llm (LLM-specific), all (both)\n"
 )
 
 
