@@ -66,7 +66,7 @@ async def _send_digest(update: Update, topic: str, limit: int) -> None:
 
     chunks = format_digest(items, topic=topic, limit=limit)
     for chunk in chunks:
-        await update.message.reply_text(chunk, parse_mode="Markdown", disable_web_page_preview=True)
+        await update.message.reply_text(chunk, disable_web_page_preview=True)
 
 
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:

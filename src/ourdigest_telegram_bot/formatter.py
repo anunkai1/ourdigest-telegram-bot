@@ -13,19 +13,20 @@ def format_digest(items: list[Item], *, topic: str, limit: int = 5) -> list[str]
     """Return a list of Telegram-safe message strings (split if too long)."""
     items = items[:limit]
     if not items:
-        return [f"_No new items in *{escape(topic)}*._"]
+        return [f"No new items in {escape(topic)}."]
 
     chunks: list[str] = []
     current: list[str] = []
     current_len = 0
 
     def header_line() -> str:
-        return f"*ourdigest — {escape(topic)}*\n_{len(items)} item(s)_\n\n"
+        return f"ourdigest — {escape(topic)}\n{len(items)} item(s)\n\n"
 
     for i, it in enumerate(items, 1):
         line = (
-            f"{i}. [{escape(it.title)}]({it.link})\n"
-            f"   _{escape(it.source) or 'unknown'}_ · {it.pubdate_str}\n"
+            f"{i}. {escape(it.title)}\n"
+            f"   {it.link}\n"
+            f"   {escape(it.source) or 'unknown'} · {it.pubdate_str}\n"
         )
         if it.summary:
             line += f"   {escape(it.summary)}\n"
